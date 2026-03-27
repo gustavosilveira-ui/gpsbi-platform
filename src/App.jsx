@@ -119,7 +119,7 @@ const URL = "/api/fluxo";
           </tr>
         </thead>
         <tbody>
-          {dados.map((d, i) => (
+          {dadosFiltrados.map((d, i) => (
             <tr key={i}>
               <td>{d.empresa}</td>
               <td>{d.tipo}</td>
