@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 export default function App() {
   const [dados, setDados] = useState([]);
+  const [empresaSelecionada, setEmpresaSelecionada] = useState("todas");
 
 const URL = "/api/fluxo";
   
@@ -55,9 +56,33 @@ const URL = "/api/fluxo";
 
   const saldo = totalEntradas - totalSaidas;
 
+  const dadosFiltrados =
+  empresaSelecionada === "todas"
+    ? dados
+    : dados.filter(
+        (d) =>
+          (d.empresa || "").toLowerCase().trim() ===
+          empresaSelecionada.toLowerCase().trim()
+      );
+
   return (
     <div style={{ padding: 30, color: "#fff", background: "#0f172a", minHeight: "100vh" }}>
       <h1>GPSBI - Fluxo de Caixa</h1>
+
+      <select
+  value={empresaSelecionada}
+  onChange={(e) => setEmpresaSelecionada(e.target.value)}
+  style={{
+    padding: 10,
+    marginTop: 10,
+    marginBottom: 20,
+    borderRadius: 8,
+  }}
+>
+  <option value="todas">Todas as empresas</option>
+  <option value="greener">Greener</option>
+  <option value="greendex">Greendex</option>
+</select>
 
       <h2>
   Entradas:{" "}
