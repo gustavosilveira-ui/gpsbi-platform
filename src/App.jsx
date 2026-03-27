@@ -59,9 +59,27 @@ const URL = "/api/fluxo";
     <div style={{ padding: 30, color: "#fff", background: "#0f172a", minHeight: "100vh" }}>
       <h1>GPSBI - Fluxo de Caixa</h1>
 
-      <h2>Entradas: R$ {totalEntradas.toLocaleString("pt-BR")}</h2>
-      <h2>Saídas: R$ {totalSaidas.toLocaleString("pt-BR")}</h2>
-      <h2>Saldo: R$ {saldo.toLocaleString("pt-BR")}</h2>
+      <h2>
+  Entradas:{" "}
+  {totalEntradas.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  })}
+</h2>
+<h2>
+  Saídas:{" "}
+  {totalSaidas.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  })}
+</h2>
+<h2>
+  Saldo:{" "}
+  {saldo.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  })}
+</h2>
 
       <hr />
 
@@ -82,7 +100,12 @@ const URL = "/api/fluxo";
               <td>{d.tipo}</td>
               <td>{d.data}</td>
               <td>{d.descricao}</td>
-              <td>{d.valor.toLocaleString("pt-BR")}</td>
+              <td>
+  {d.valor.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  })}
+</td>
             </tr>
           ))}
         </tbody>
