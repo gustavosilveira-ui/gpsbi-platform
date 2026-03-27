@@ -26,7 +26,7 @@ const resultado = linhas.map((linha) => {
   data: col[2],
   descricao: col[3],
   categoria: col[4],
-  valor: parseFloat(col[5]) || 0,
+  valor: parseFloat((col[5] || "0").replace(/\./g, "").replace(",", ".")) || 0,
   status: col[6],
 };
           return {
