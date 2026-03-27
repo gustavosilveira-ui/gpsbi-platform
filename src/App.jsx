@@ -21,15 +21,14 @@ const resultado = linhas.map((linha) => {
     : limpa.split(",");
 
   return {
-    empresa: col[0],
-    tipo: col[1],
-    data: col[2],
-    descricao: col[3],
-    categoria: col[4],
-    valor: parseFloat(col[5]) || 0,
-    status: col[6],
-  };
-});
+  empresa: col[0],
+  tipo: (col[1] || "").toLowerCase().trim(),
+  data: col[2],
+  descricao: col[3],
+  categoria: col[4],
+  valor: parseFloat(col[5]) || 0,
+  status: col[6],
+};
           return {
             empresa: col[0],
             tipo: col[1],
