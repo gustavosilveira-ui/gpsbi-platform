@@ -4,7 +4,7 @@ export default function App() {
   const [dados, setDados] = useState([]);
 
   const URL =
-    "https://docs.google.com/spreadsheets/d/e/2PACX-...output=csv";
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTsj89x1ZL_Cyx-UsXMxxg-p9eSiioVzvGA4KhOzVq6Umq2sgjma1eGXsxSe8zf--JyNkOFJOFNzyy/pub?gid=706534493&single=true&output=csv";
 
   useEffect(() => {
     fetch(URL)
@@ -12,34 +12,39 @@ export default function App() {
       .then((csv) => {
         const linhas = csv.split("\n").slice(1);
 
-const resultado = linhas.map((linha) => {
-  const limpa = linha.replaceAll('"', "");
+        const resultado = linhas
+          .map((linha) => {
+            const limpa = linha.replaceAll('"', "").trim();
 
-  // detecta automaticamente separador
-  const col = limpa.includes(";")
-    ? limpa.split(";")
-    : limpa.split(",");
+            if (!limpa) return null;
 
-  return {
-  empresa: col[0],
-  tipo: (col[1] || "").toLowerCase().trim(),
-  data: col[2],
-  descricao: col[3],
-  categoria: col[4],
-  valor: parseFloat((col[5] || "0").replace(/\./g, "").replace(",", ".")) || 0,
-  status: col[6],
-};
-          return {
-            empresa: col[0],
-            tipo: col[1],
-            data: col[2],
-            descricao: col[3],
-            categoria: col[4],
-            valor: parseFloat(col[5]),
-            status: col[6],
-          };
-        });
+            const col = limpa.includes(";")
+              ? limpa.split(";")
+              : limpa.split(",");
+
+            return {
+              empresa: (col[0] || "").trim(),
+              tipo: (col[1] || "").toLowerCase().trim(),
+              data: (col[2] || "").trim(),
+              descricao: (col[3] || "").trim(),
+              categoria: (col[4] || "").trim(),
+              valor:
+                parseFloat(
+                  (col[5] || "0")
+                    .replace(/\./g, "")
+                    .replace(",", ".")
+                    .trim()
+                ) || 0,
+              status: (col[6] || "").trim(),
+            };
+          })
+          .filter(Boolean);
+
+        console.log(resultado);
         setDados(resultado);
+      })
+      .catch((erro) => {
+        console.error("Erro ao carregar CSV:", erro);
       });
   }, []);
 
@@ -48,22 +53,22 @@ const resultado = linhas.map((linha) => {
     .reduce((acc, cur) => acc + (cur.valor || 0), 0);
 
   const totalSaidas = dados
-    .filter((d) => d.tipo === "saida")
+    .filter((d) => d.tipo === "saida" || d.tipo === "saída")
     .reduce((acc, cur) => acc + (cur.valor || 0), 0);
 
   const saldo = totalEntradas - totalSaidas;
 
   return (
-    <div style={{ padding: 30, color: "#fff", background: "#0f172a" }}>
+    <div style={{ padding: 30, color: "#fff", background: "#0f172a", minHeight: "100vh" }}>
       <h1>GPSBI - Fluxo de Caixa</h1>
 
-      <h2>Entradas: R$ {totalEntradas.toLocaleString()}</h2>
-      <h2>Saídas: R$ {totalSaidas.toLocaleString()}</h2>
-      <h2>Saldo: R$ {saldo.toLocaleString()}</h2>
+      <h2>Entradas: R$ {totalEntradas.toLocaleString("pt-BR")}</h2>
+      <h2>Saídas: R$ {totalSaidas.toLocaleString("pt-BR")}</h2>
+      <h2>Saldo: R$ {saldo.toLocaleString("pt-BR")}</h2>
 
       <hr />
 
-      <table border="1" cellPadding="5">
+      <table border="1" cellPadding="5" style={{ borderCollapse: "collapse", background: "#111827" }}>
         <thead>
           <tr>
             <th>Empresa</th>
@@ -80,7 +85,7 @@ const resultado = linhas.map((linha) => {
               <td>{d.tipo}</td>
               <td>{d.data}</td>
               <td>{d.descricao}</td>
-              <td>{d.valor}</td>
+              <td>{d.valor.toLocaleString("pt-BR")}</td>
             </tr>
           ))}
         </tbody>
