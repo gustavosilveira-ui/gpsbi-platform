@@ -16,8 +16,9 @@ import {
 } from "recharts";
 
 const COLORS = {
-  bg: "#08131f",
-  bg2: "#0b1730",
+  bg: "#07111b",
+  bg2: "#091420",
+  bg3: "#08131f",
   panel: "#0f1c2b",
   panelSoft: "#122235",
   border: "#1f3147",
@@ -29,13 +30,13 @@ const COLORS = {
   yellow: "#ffd166",
   teal: "#24c7b2",
   cyan: "#1eb4ff",
-  orange: "#f59e0b",
 };
 
 export default function App() {
   const [dados, setDados] = useState([]);
   const [empresaSelecionada, setEmpresaSelecionada] = useState("Global");
   const [logado, setLogado] = useState(false);
+  const [menuAberto, setMenuAberto] = useState(false);
 
   const URL = "/api/fluxo";
 
@@ -101,13 +102,9 @@ export default function App() {
         };
       }
 
-      if (item.tipo === "entrada") {
-        mapa[data].entradas += item.valor || 0;
-      }
-
-      if (item.tipo === "saida" || item.tipo === "saída") {
+      if (item.tipo === "entrada") mapa[data].entradas += item.valor || 0;
+      if (item.tipo === "saida" || item.tipo === "saída")
         mapa[data].saidas += item.valor || 0;
-      }
     });
 
     const ordenado = Object.values(mapa).sort((a, b) =>
@@ -127,9 +124,7 @@ export default function App() {
     });
   }, [dadosEmpresa]);
 
-  const ultimosDias = useMemo(() => {
-    return dadosPorData.slice(-18);
-  }, [dadosPorData]);
+  const ultimosDias = useMemo(() => dadosPorData.slice(-18), [dadosPorData]);
 
   const totalEntradas = dadosEmpresa
     .filter((d) => d.tipo === "entrada")
@@ -205,26 +200,36 @@ export default function App() {
   if (!logado) {
     return (
       <div style={styles.loginWrapper}>
-        <div style={styles.loginGlow} />
+        <div style={styles.loginOrb} />
+        <div style={styles.loginOrb2} />
+        <div style={styles.sparkle}>✦</div>
+
         <div style={styles.loginCard}>
           <div style={styles.loginLeft}>
-            <div style={styles.loginTitle}>GPSBI Platform</div>
-            <div style={styles.loginText}>
-              Protótipo da futura plataforma própria da GPSBI, com acesso
-              seguro, experiência premium e visão executiva para cada cliente.
+            <div style={styles.loginLogo}>GPSBI Platform</div>
+
+            <div style={styles.welcomeBox}>
+              <div style={styles.welcomeTitle}>Seja muito bem-vindo! ✨</div>
+              <div style={styles.welcomeText}>
+                Aqui seus números viram <span style={styles.highlight}>
+                  decisões que transformam
+                </span>.
+                <br />
+                Faça login para acessar seu painel.
+              </div>
             </div>
 
             <InfoBox
-              title="Ambiente com acesso protegido"
-              text="Base pronta para evoluir para login por cliente, sessão e permissões."
-            />
-            <InfoBox
-              title="Multiempresa e multicliente"
-              text="Estrutura pensada para Greener, Greendex e futuros clientes em uma mesma plataforma."
+              title="Clareza para decidir"
+              text="Visual executivo, leitura prática e dados que ajudam o cliente a agir com segurança."
             />
             <InfoBox
               title="Experiência premium GPSBI"
-              text="Mais valor percebido, mais encantamento e menos dependência de ferramentas de terceiros."
+              text="Mais valor percebido, mais encantamento e menos dependência de ferramentas genéricas."
+            />
+            <InfoBox
+              title="Base pronta para evoluir"
+              text="Login real, permissões por cliente, multempresa e dashboards especializados."
             />
           </div>
 
@@ -264,7 +269,16 @@ export default function App() {
 
   return (
     <div style={styles.page}>
-      <aside style={styles.sidebar}>
+      {menuAberto && (
+        <div style={styles.overlayMobile} onClick={() => setMenuAberto(false)} />
+      )}
+
+      <aside
+        style={{
+          ...styles.sidebar,
+          ...(menuAberto ? styles.sidebarOpenMobile : {}),
+        }}
+      >
         <div>
           <div style={styles.logo}>GPSBI</div>
           <div style={styles.logoSub}>CONSULTORIA</div>
@@ -273,9 +287,10 @@ export default function App() {
         <div style={styles.sideLabel}>CLIENTE ATIVO</div>
 
         <div style={styles.clientCard}>
-          <div style={styles.clientName}>Grupo Greener</div>
+          <div style={styles.clientName}>Grupo Greener / Greendex</div>
+          <div style={styles.onlineDot}>● Online</div>
 
-          <div style={{ marginTop: 16 }}>
+          <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: 6 }}>
             <SegmentButton
               active={empresaSelecionada === "Global"}
               onClick={() => setEmpresaSelecionada("Global")}
@@ -297,23 +312,32 @@ export default function App() {
           </div>
         </div>
 
-        <div style={styles.sideLabel}>MENU</div>
-
+        <div style={styles.sideLabel}>FINANCEIRO</div>
         <MenuItem active>Fluxo de Caixa</MenuItem>
         <MenuItem>DRE Projetada</MenuItem>
-        <MenuItem>Comercial</MenuItem>
         <MenuItem>Inadimplência</MenuItem>
 
+        <div style={styles.sideLabel}>COMERCIAL</div>
+        <MenuItem>Painel Comercial</MenuItem>
+        <MenuItem>Metas & OKRs</MenuItem>
+
+        <div style={styles.sideLabel}>GESTÃO</div>
+        <MenuItem>Conciliação Bancária</MenuItem>
+        <MenuItem>Multiempresas</MenuItem>
+
         <div style={styles.sideFooter}>
-          <div style={styles.sideFooterTitle}>Visão da plataforma</div>
-          <div style={styles.sideFooterText}>
-            O objetivo aqui é transformar a GPSBI em uma experiência própria,
-            segura e encantadora para o cliente final.
-          </div>
+          <div style={styles.sideFooterTitle}>GPSBI Admin</div>
+          <div style={styles.sideFooterText}>Administrador</div>
         </div>
       </aside>
 
       <main style={styles.main}>
+        <div style={styles.mobileTop}>
+          <button style={styles.burger} onClick={() => setMenuAberto(true)}>
+            ☰
+          </button>
+        </div>
+
         <div style={styles.topbar}>
           <input
             placeholder="Buscar cliente, indicador ou página"
@@ -330,8 +354,19 @@ export default function App() {
           <div>
             <h1 style={styles.title}>Fluxo de Caixa</h1>
             <div style={styles.subtitle}>
-              Visão diária com realizado e projeção, desenhada para a futura
-              plataforma da GPSBI.
+              Visão diária • {empresaSelecionada} •{" "}
+              {new Date().toLocaleDateString("pt-BR", {
+                month: "long",
+                year: "numeric",
+              })}
+            </div>
+          </div>
+
+          <div style={styles.headerGlowBox}>
+            <div style={styles.headerGlowTitle}>Bom dia, Equipe GPSBI! 👋</div>
+            <div style={styles.headerGlowText}>
+              Seus indicadores estão prontos. Continue tomando decisões com
+              clareza e confiança.
             </div>
           </div>
         </div>
@@ -346,7 +381,7 @@ export default function App() {
           <MetricCard
             title="PAGAMENTOS TOTAIS"
             value={formatCurrency(totalSaidas)}
-            helper="no período"
+            helper="saídas"
             color={COLORS.red}
           />
           <MetricCard
@@ -356,16 +391,16 @@ export default function App() {
             color={saldoFinal >= 0 ? COLORS.blue : COLORS.red}
           />
           <MetricCard
-            title="MELHOR RECEBIMENTO"
+            title="MELHOR DIA"
             value={formatCurrency(melhorRecebimento)}
-            helper={`dia ${melhorRecebimentoDia}`}
-            color={COLORS.cyan}
+            helper={`maior entrada • ${melhorRecebimentoDia}`}
+            color={COLORS.yellow}
           />
         </div>
 
         <div style={styles.gridTop}>
-          <Panel title="RECEBIMENTOS VS PAGAMENTOS">
-            <div style={{ width: "100%", height: 260 }}>
+          <Panel title="RECEBIMENTOS VS PAGAMENTOS — DIÁRIO">
+            <div style={{ width: "100%", height: 300 }}>
               <ResponsiveContainer>
                 <BarChart
                   data={ultimosDias.map((d) => ({
@@ -403,7 +438,7 @@ export default function App() {
           </Panel>
 
           <Panel title="COMPOSIÇÃO RECEBIMENTOS">
-            <div style={{ width: "100%", height: 260 }}>
+            <div style={{ width: "100%", height: 240 }}>
               <ResponsiveContainer>
                 <PieChart>
                   <Pie
@@ -411,11 +446,11 @@ export default function App() {
                     dataKey="value"
                     nameKey="name"
                     innerRadius={58}
-                    outerRadius={90}
+                    outerRadius={86}
                     paddingAngle={3}
                   >
                     {composicaoRecebimentos.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell key={index} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip
@@ -426,7 +461,7 @@ export default function App() {
               </ResponsiveContainer>
             </div>
 
-            <div style={{ marginTop: 6 }}>
+            <div style={{ marginTop: 8 }}>
               {composicaoRecebimentos.map((item, idx) => (
                 <div key={idx} style={styles.legendItem}>
                   <div style={styles.legendLeft}>
@@ -447,9 +482,9 @@ export default function App() {
           </Panel>
         </div>
 
-        <Panel title="SALDO ACUMULADO — LINHA DO TEMPO">
+        <Panel title="SALDO ACUMULADO NO MÊS">
           <div style={styles.timelineWrap}>
-            <div style={{ width: "100%", height: 240 }}>
+            <div style={{ width: "100%", height: 280 }}>
               <ResponsiveContainer>
                 <LineChart data={linhaSaldo}>
                   <CartesianGrid stroke={COLORS.border} vertical={false} />
@@ -543,11 +578,13 @@ function MetricCard({ title, value, helper, color }) {
   return (
     <div
       style={{
-        background: "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))",
+        background:
+          "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))",
         border: `1px solid ${COLORS.border}`,
         borderTop: `2px solid ${color}`,
-        borderRadius: 16,
+        borderRadius: 18,
         padding: 18,
+        minWidth: 0,
       }}
     >
       <div style={{ color: COLORS.muted, fontSize: 11, letterSpacing: "0.14em" }}>
@@ -556,9 +593,11 @@ function MetricCard({ title, value, helper, color }) {
       <div
         style={{
           color,
-          fontSize: 22,
-          fontWeight: 700,
+          fontSize: 18,
+          fontWeight: 800,
           marginTop: 12,
+          lineHeight: 1.25,
+          wordBreak: "break-word",
         }}
       >
         {value}
@@ -578,6 +617,7 @@ function Panel({ title, children }) {
         border: `1px solid ${COLORS.border}`,
         borderRadius: 18,
         padding: 18,
+        minWidth: 0,
       }}
     >
       <div
@@ -604,9 +644,8 @@ function SegmentButton({ active, children, onClick }) {
         borderRadius: 999,
         border: `1px solid ${active ? COLORS.blue : COLORS.border}`,
         background: active ? COLORS.blue : "transparent",
-        color: "white",
+        color: "#fff",
         fontSize: 11,
-        marginRight: 6,
         cursor: "pointer",
       }}
     >
@@ -621,7 +660,7 @@ function MenuItem({ children, active = false }) {
       style={{
         padding: "12px 14px",
         borderRadius: 12,
-        color: active ? "white" : COLORS.muted,
+        color: active ? "#fff" : COLORS.muted,
         background: active ? "rgba(30,180,255,0.12)" : "transparent",
         border: active ? `1px solid ${COLORS.border}` : "1px solid transparent",
         marginBottom: 6,
@@ -636,10 +675,10 @@ function MenuItem({ children, active = false }) {
 function InfoBox({ title, text }) {
   return (
     <div style={styles.infoBox}>
-      <div style={{ color: COLORS.text, fontWeight: 600, marginBottom: 8 }}>
+      <div style={{ color: COLORS.text, fontWeight: 700, marginBottom: 8 }}>
         {title}
       </div>
-      <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>{text}</div>
+      <div style={{ color: COLORS.muted, lineHeight: 1.7 }}>{text}</div>
     </div>
   );
 }
@@ -682,9 +721,7 @@ function formatarDataCurta(data) {
 }
 
 function formatK(valor) {
-  if (Math.abs(valor) >= 1000) {
-    return `R$${Math.round(valor / 1000)}k`;
-  }
+  if (Math.abs(valor) >= 1000) return `R$${Math.round(valor / 1000)}k`;
   return `R$${valor}`;
 }
 
@@ -699,18 +736,35 @@ function moneyShort(valor) {
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "linear-gradient(180deg, #07111b, #091420 45%, #08131f)",
+    background: `linear-gradient(180deg, ${COLORS.bg}, ${COLORS.bg2} 45%, ${COLORS.bg3})`,
     color: COLORS.text,
     display: "grid",
-    gridTemplateColumns: "160px 1fr",
+    gridTemplateColumns: "220px minmax(0, 1fr)",
   },
   sidebar: {
-    background: "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))",
+    background:
+      "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))",
     borderRight: `1px solid ${COLORS.border}`,
     padding: 18,
+    minHeight: "100vh",
+    boxSizing: "border-box",
+  },
+  sidebarOpenMobile: {
+    position: "fixed",
+    left: 0,
+    top: 0,
+    zIndex: 50,
+    width: 260,
+    height: "100vh",
+  },
+  overlayMobile: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.45)",
+    zIndex: 40,
   },
   logo: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 800,
     letterSpacing: "-0.02em",
   },
@@ -738,6 +792,12 @@ const styles = {
   clientName: {
     fontWeight: 700,
     fontSize: 16,
+    lineHeight: 1.4,
+  },
+  onlineDot: {
+    color: COLORS.green,
+    fontSize: 12,
+    marginTop: 6,
   },
   sideFooter: {
     marginTop: 24,
@@ -749,7 +809,7 @@ const styles = {
   sideFooterTitle: {
     fontSize: 13,
     fontWeight: 700,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   sideFooterText: {
     color: COLORS.muted,
@@ -758,6 +818,19 @@ const styles = {
   },
   main: {
     padding: 20,
+    minWidth: 0,
+  },
+  mobileTop: {
+    display: "none",
+    marginBottom: 10,
+  },
+  burger: {
+    background: COLORS.panel,
+    color: COLORS.text,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 10,
+    padding: "8px 12px",
+    fontSize: 20,
   },
   topbar: {
     display: "flex",
@@ -773,11 +846,15 @@ const styles = {
     color: COLORS.text,
     padding: "10px 14px",
     borderRadius: 12,
-    minWidth: 280,
+    minWidth: 260,
+    maxWidth: 420,
+    width: "100%",
+    boxSizing: "border-box",
   },
   topbarBadges: {
     display: "flex",
     gap: 8,
+    flexWrap: "wrap",
   },
   topbarBadge: {
     background: COLORS.panel,
@@ -792,16 +869,33 @@ const styles = {
   },
   title: {
     margin: 0,
-    fontSize: 34,
+    fontSize: 32,
   },
   subtitle: {
     color: COLORS.muted,
     fontSize: 13,
     marginTop: 6,
+    marginBottom: 16,
+  },
+  headerGlowBox: {
+    background:
+      "linear-gradient(90deg, rgba(30,180,255,0.12), rgba(255,255,255,0.01))",
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 18,
+    padding: 18,
+  },
+  headerGlowTitle: {
+    fontSize: 18,
+    fontWeight: 800,
+    marginBottom: 8,
+  },
+  headerGlowText: {
+    color: COLORS.muted,
+    lineHeight: 1.7,
   },
   cardGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
+    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
     gap: 12,
     marginBottom: 16,
   },
@@ -810,6 +904,7 @@ const styles = {
     gridTemplateColumns: "2fr 1fr",
     gap: 12,
     marginBottom: 16,
+    minWidth: 0,
   },
   timelineWrap: {
     borderRadius: 16,
@@ -828,17 +923,20 @@ const styles = {
     alignItems: "center",
     marginBottom: 8,
     fontSize: 13,
+    gap: 10,
   },
   legendLeft: {
     display: "flex",
     alignItems: "center",
     gap: 8,
+    minWidth: 0,
   },
   legendDot: {
     width: 10,
     height: 10,
     borderRadius: 999,
     display: "inline-block",
+    flex: "0 0 auto",
   },
   matrixTable: {
     borderCollapse: "collapse",
@@ -859,12 +957,14 @@ const styles = {
     fontSize: 13,
     fontWeight: 600,
     textAlign: "left",
+    whiteSpace: "nowrap",
   },
   matrixCell: {
     padding: "10px",
     borderBottom: `1px solid ${COLORS.border}`,
     fontSize: 13,
     textAlign: "center",
+    whiteSpace: "nowrap",
   },
   loginWrapper: {
     minHeight: "100vh",
@@ -872,28 +972,50 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     background:
-      "radial-gradient(circle at top left, rgba(30,180,255,0.15), transparent 30%), linear-gradient(180deg, #07111b, #091420 45%, #08131f)",
+      "radial-gradient(circle at top left, rgba(30,180,255,0.16), transparent 30%), linear-gradient(180deg, #07111b, #091420 45%, #08131f)",
     position: "relative",
     overflow: "hidden",
+    padding: 20,
+    boxSizing: "border-box",
   },
-  loginGlow: {
+  loginOrb: {
     position: "absolute",
     left: -120,
-    top: -80,
-    width: 320,
-    height: 320,
-    background: "rgba(30,180,255,0.15)",
+    top: -60,
+    width: 340,
+    height: 340,
+    background: "rgba(30,180,255,0.18)",
     filter: "blur(80px)",
     borderRadius: "50%",
+    animation: "pulse 6s ease-in-out infinite",
+  },
+  loginOrb2: {
+    position: "absolute",
+    right: -80,
+    bottom: -80,
+    width: 260,
+    height: 260,
+    background: "rgba(255,209,102,0.10)",
+    filter: "blur(70px)",
+    borderRadius: "50%",
+  },
+  sparkle: {
+    position: "absolute",
+    right: "12%",
+    top: "18%",
+    fontSize: 42,
+    color: COLORS.yellow,
+    animation: "spinSlow 10s linear infinite",
+    opacity: 0.9,
   },
   loginCard: {
-    width: 880,
-    maxWidth: "92vw",
+    width: 980,
+    maxWidth: "100%",
     background: COLORS.panel,
     border: `1px solid ${COLORS.border}`,
     borderRadius: 28,
     display: "grid",
-    gridTemplateColumns: "1.1fr 1fr",
+    gridTemplateColumns: "1.08fr 1fr",
     overflow: "hidden",
     boxShadow: "0 30px 70px rgba(0,0,0,0.35)",
     zIndex: 2,
@@ -906,15 +1028,31 @@ const styles = {
   loginRight: {
     padding: 34,
   },
-  loginTitle: {
-    fontSize: 22,
+  loginLogo: {
+    fontSize: 24,
     fontWeight: 800,
     marginBottom: 14,
   },
-  loginText: {
+  welcomeBox: {
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 18,
+    background: "rgba(255,255,255,0.02)",
+  },
+  welcomeTitle: {
+    fontSize: 20,
+    fontWeight: 800,
+    marginBottom: 8,
+  },
+  welcomeText: {
     color: COLORS.muted,
     lineHeight: 1.8,
-    marginBottom: 22,
+    fontSize: 16,
+  },
+  highlight: {
+    color: COLORS.yellow,
+    fontWeight: 800,
   },
   eyebrow: {
     fontSize: 11,
@@ -952,6 +1090,7 @@ const styles = {
     borderRadius: 12,
     fontWeight: 700,
     cursor: "pointer",
+    boxShadow: "0 10px 30px rgba(30,180,255,0.25)",
   },
   loginObs: {
     color: COLORS.muted,
