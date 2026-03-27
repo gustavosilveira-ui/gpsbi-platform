@@ -1,4 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  LineChart,
+  Line,
+  Legend,
+} from "recharts";
 
 export default function App() {
   const [dados, setDados] = useState([]);
@@ -38,7 +50,6 @@ export default function App() {
           })
           .filter(Boolean);
 
-        console.log(resultado);
         setDados(resultado);
       })
       .catch((erro) => {
@@ -65,95 +76,317 @@ export default function App() {
 
   const saldo = totalEntradas - totalSaidas;
 
+  const dadosPorData = useMemo(() => {
+    const mapa = {};
+
+    dadosFiltrados.forEach((item) => {
+      const data = item.data || "Sem data";
+
+      if (!mapa[data]) {
+        mapa[data] = {
+          data,
+          entradas: 0,
+          saidas: 0,
+        };
+      }
+
+      if (item.tipo === "entrada") {
+        mapa[data].entradas += item.valor || 0;
+      }
+
+      if (item.tipo === "saida" || item.tipo === "saída") {
+        mapa[data].saidas += item.valor || 0;
+      }
+    });
+
+    return Object.values(mapa).sort((a, b) => a.data.localeCompare(b.data));
+  }, [dadosFiltrados]);
+
+  const dadosSaldoAcumulado = useMemo(() => {
+    let acumulado = 0;
+
+    return dadosPorData.map((item) => {
+      acumulado += item.entradas - item.saidas;
+
+      return {
+        ...item,
+        saldoAcumulado: acumulado,
+      };
+    });
+  }, [dadosPorData]);
+
+  const formatCurrency = (valor) =>
+    valor.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+
   return (
     <div
       style={{
-        padding: 30,
-        color: "#fff",
-        background: "#0f172a",
         minHeight: "100vh",
+        background: "linear-gradient(180deg, #081120 0%, #0b1730 100%)",
+        color: "#ffffff",
+        padding: "32px",
         fontFamily: "Arial, sans-serif",
       }}
     >
-      <h1 style={{ marginBottom: 10 }}>GPSBI - Fluxo de Caixa</h1>
-
-      <select
-        value={empresaSelecionada}
-        onChange={(e) => setEmpresaSelecionada(e.target.value)}
+      <div
         style={{
-          padding: 10,
-          marginTop: 10,
-          marginBottom: 20,
-          borderRadius: 8,
-          border: "none",
+          maxWidth: "1400px",
+          margin: "0 auto",
         }}
       >
-        <option value="todas">Todas as empresas</option>
-        <option value="greener">Greener</option>
-        <option value="greendex">Greendex</option>
-      </select>
+        <div
+          style={{
+            marginBottom: "24px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "16px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <h1 style={{ margin: 0, fontSize: "42px" }}>GPSBI - Fluxo de Caixa</h1>
+            <p style={{ marginTop: "8px", color: "#94a3b8" }}>
+              Visão financeira online com dados reais
+            </p>
+          </div>
 
-      <h2>
-        Entradas:{" "}
-        {totalEntradas.toLocaleString("pt-BR", {
-          style: "currency",
-          currency: "BRL",
-        })}
-      </h2>
+          <select
+            value={empresaSelecionada}
+            onChange={(e) => setEmpresaSelecionada(e.target.value)}
+            style={{
+              padding: "12px 16px",
+              borderRadius: "12px",
+              border: "1px solid #334155",
+              background: "#0f172a",
+              color: "#fff",
+              minWidth: "220px",
+            }}
+          >
+            <option value="todas">Todas as empresas</option>
+            <option value="greener">Greener</option>
+            <option value="greendex">Greendex</option>
+          </select>
+        </div>
 
-      <h2>
-        Saídas:{" "}
-        {totalSaidas.toLocaleString("pt-BR", {
-          style: "currency",
-          currency: "BRL",
-        })}
-      </h2>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: "16px",
+            marginBottom: "24px",
+          }}
+        >
+          <CardTitulo
+            titulo="Entradas"
+            valor={formatCurrency(totalEntradas)}
+            cor="#22c55e"
+          />
+          <CardTitulo
+            titulo="Saídas"
+            valor={formatCurrency(totalSaidas)}
+            cor="#ef4444"
+          />
+          <CardTitulo
+            titulo="Saldo"
+            valor={formatCurrency(saldo)}
+            cor={saldo >= 0 ? "#38bdf8" : "#f59e0b"}
+          />
+        </div>
 
-      <h2>
-        Saldo:{" "}
-        {saldo.toLocaleString("pt-BR", {
-          style: "currency",
-          currency: "BRL",
-        })}
-      </h2>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "2fr 1fr",
+            gap: "16px",
+            marginBottom: "24px",
+          }}
+        >
+          <div
+            style={{
+              background: "#0f172a",
+              border: "1px solid #1e293b",
+              borderRadius: "18px",
+              padding: "20px",
+              minHeight: "380px",
+            }}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: "16px" }}>
+              Entradas x Saídas por Data
+            </h3>
 
-      <hr style={{ margin: "20px 0" }} />
+            <div style={{ width: "100%", height: "300px" }}>
+              <ResponsiveContainer>
+                <BarChart data={dadosPorData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis dataKey="data" stroke="#94a3b8" />
+                  <YAxis stroke="#94a3b8" />
+                  <Tooltip
+                    formatter={(value) => formatCurrency(Number(value))}
+                    contentStyle={{
+                      backgroundColor: "#0b1220",
+                      border: "1px solid #334155",
+                      borderRadius: "10px",
+                    }}
+                  />
+                  <Legend />
+                  <Bar dataKey="entradas" fill="#22c55e" name="Entradas" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="saidas" fill="#ef4444" name="Saídas" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
 
-      <table
-        border="1"
-        cellPadding="8"
-        style={{
-          borderCollapse: "collapse",
-          background: "#111827",
-          width: "100%",
-        }}
-      >
-        <thead>
-          <tr>
-            <th>Empresa</th>
-            <th>Tipo</th>
-            <th>Data</th>
-            <th>Descrição</th>
-            <th>Valor</th>
-          </tr>
-        </thead>
-        <tbody>
-          {dadosFiltrados.map((d, i) => (
-            <tr key={i}>
-              <td>{d.empresa}</td>
-              <td>{d.tipo}</td>
-              <td>{d.data}</td>
-              <td>{d.descricao}</td>
-              <td>
-                {d.valor.toLocaleString("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                })}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          <div
+            style={{
+              background: "#0f172a",
+              border: "1px solid #1e293b",
+              borderRadius: "18px",
+              padding: "20px",
+            }}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: "16px" }}>Resumo</h3>
+
+            <div style={{ color: "#94a3b8", lineHeight: "1.9" }}>
+              <div>
+                <strong style={{ color: "#fff" }}>Empresa:</strong>{" "}
+                {empresaSelecionada === "todas"
+                  ? "Todas"
+                  : empresaSelecionada.charAt(0).toUpperCase() +
+                    empresaSelecionada.slice(1)}
+              </div>
+              <div>
+                <strong style={{ color: "#fff" }}>Registros:</strong>{" "}
+                {dadosFiltrados.length}
+              </div>
+              <div>
+                <strong style={{ color: "#fff" }}>Datas com movimento:</strong>{" "}
+                {dadosPorData.length}
+              </div>
+              <div>
+                <strong style={{ color: "#fff" }}>Saldo final:</strong>{" "}
+                {formatCurrency(saldo)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: "#0f172a",
+            border: "1px solid #1e293b",
+            borderRadius: "18px",
+            padding: "20px",
+            marginBottom: "24px",
+          }}
+        >
+          <h3 style={{ marginTop: 0, marginBottom: "16px" }}>Saldo Acumulado</h3>
+
+          <div style={{ width: "100%", height: "320px" }}>
+            <ResponsiveContainer>
+              <LineChart data={dadosSaldoAcumulado}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <XAxis dataKey="data" stroke="#94a3b8" />
+                <YAxis stroke="#94a3b8" />
+                <Tooltip
+                  formatter={(value) => formatCurrency(Number(value))}
+                  contentStyle={{
+                    backgroundColor: "#0b1220",
+                    border: "1px solid #334155",
+                    borderRadius: "10px",
+                  }}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="saldoAcumulado"
+                  stroke="#38bdf8"
+                  strokeWidth={3}
+                  dot={false}
+                  name="Saldo acumulado"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: "#0f172a",
+            border: "1px solid #1e293b",
+            borderRadius: "18px",
+            padding: "20px",
+            overflowX: "auto",
+          }}
+        >
+          <h3 style={{ marginTop: 0, marginBottom: "16px" }}>Lançamentos</h3>
+
+          <table
+            style={{
+              borderCollapse: "collapse",
+              width: "100%",
+              minWidth: "900px",
+            }}
+          >
+            <thead>
+              <tr style={{ background: "#111827" }}>
+                <th style={thStyle}>Empresa</th>
+                <th style={thStyle}>Tipo</th>
+                <th style={thStyle}>Data</th>
+                <th style={thStyle}>Descrição</th>
+                <th style={thStyle}>Categoria</th>
+                <th style={thStyle}>Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dadosFiltrados.map((d, i) => (
+                <tr key={i}>
+                  <td style={tdStyle}>{d.empresa}</td>
+                  <td style={tdStyle}>{d.tipo}</td>
+                  <td style={tdStyle}>{d.data}</td>
+                  <td style={tdStyle}>{d.descricao}</td>
+                  <td style={tdStyle}>{d.categoria}</td>
+                  <td style={tdStyle}>{formatCurrency(d.valor)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
+
+function CardTitulo({ titulo, valor, cor }) {
+  return (
+    <div
+      style={{
+        background: "#0f172a",
+        border: "1px solid #1e293b",
+        borderRadius: "18px",
+        padding: "20px",
+      }}
+    >
+      <div style={{ color: "#94a3b8", marginBottom: "10px", fontSize: "14px" }}>
+        {titulo}
+      </div>
+      <div style={{ fontSize: "34px", fontWeight: "bold", color: cor }}>
+        {valor}
+      </div>
+    </div>
+  );
+}
+
+const thStyle = {
+  padding: "12px",
+  textAlign: "left",
+  borderBottom: "1px solid #334155",
+};
+
+const tdStyle = {
+  padding: "12px",
+  borderBottom: "1px solid #1e293b",
+};
