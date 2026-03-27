@@ -17,9 +17,7 @@ const URL = "/api/fluxo";
 
             if (!limpa) return null;
 
-            const col = limpa.includes(";")
-              ? limpa.split(";")
-              : limpa.split(",");
+            const col = limpa.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
 
             return {
               empresa: (col[0] || "").trim(),
