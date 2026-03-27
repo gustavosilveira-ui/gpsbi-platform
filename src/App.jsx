@@ -46,15 +46,15 @@ const URL = "/api/fluxo";
       });
   }, []);
 
-  const totalEntradas = dados
-    .filter((d) => d.tipo === "entrada")
-    .reduce((acc, cur) => acc + (cur.valor || 0), 0);
+  const totalEntradas = dadosFiltrados
+  .filter((d) => d.tipo === "entrada")
+  .reduce((acc, cur) => acc + (cur.valor || 0), 0);
 
-  const totalSaidas = dados
-    .filter((d) => d.tipo === "saida" || d.tipo === "saída")
-    .reduce((acc, cur) => acc + (cur.valor || 0), 0);
+const totalSaidas = dadosFiltrados
+  .filter((d) => d.tipo === "saida" || d.tipo === "saída")
+  .reduce((acc, cur) => acc + (cur.valor || 0), 0);
 
-  const saldo = totalEntradas - totalSaidas;
+const saldo = totalEntradas - totalSaidas;
 
   const dadosFiltrados =
   empresaSelecionada === "todas"
