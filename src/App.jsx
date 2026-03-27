@@ -3,9 +3,8 @@ import { useEffect, useState } from "react";
 export default function App() {
   const [dados, setDados] = useState([]);
 
-  const URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTsj89x1ZL_Cyx-UsXMxxg-p9eSiioVzvGA4KhOzVq6Umq2sgjma1eGXsxSe8zf--JyNkOFJOFNzyy/pub?gid=706534493&single=true&output=csv";
-
+const URL = "/api/fluxo";
+  
   useEffect(() => {
     fetch(URL)
       .then((res) => res.text())
