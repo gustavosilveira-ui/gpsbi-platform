@@ -11,8 +11,25 @@ export default function App() {
       .then((res) => res.text())
       .then((csv) => {
         const linhas = csv.split("\n").slice(1);
-        const resultado = linhas.map((linha) => {
-          const col = linha.split(",");
+
+const resultado = linhas.map((linha) => {
+  const limpa = linha.replaceAll('"', "");
+
+  // detecta automaticamente separador
+  const col = limpa.includes(";")
+    ? limpa.split(";")
+    : limpa.split(",");
+
+  return {
+    empresa: col[0],
+    tipo: col[1],
+    data: col[2],
+    descricao: col[3],
+    categoria: col[4],
+    valor: parseFloat(col[5]) || 0,
+    status: col[6],
+  };
+});
           return {
             empresa: col[0],
             tipo: col[1],
