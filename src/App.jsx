@@ -18,13 +18,10 @@ import "./styles.css";
 
 const COLORS = {
   blue: "#1eb4ff",
-  blueSoft: "#12314f",
   green: "#20d1a5",
   red: "#ff5b5b",
   yellow: "#ffd166",
   teal: "#24c7b2",
-  text: "#e8f0f7",
-  muted: "#7f93ab",
 };
 
 const MONTHS = [
@@ -49,13 +46,27 @@ export default function App() {
   const [pagina, setPagina] = useState("fluxo");
   const [empresaSelecionada, setEmpresaSelecionada] = useState("Global");
   const [anoSelecionado, setAnoSelecionado] = useState("todos");
-  const [dreExpandido, setDreExpandido] = useState({
-    receita: true,
-    despesas: true,
-  });
+
   const [fluxoExpandido, setFluxoExpandido] = useState({
-    recebimentos: true,
-    saidas: true,
+    recebimentos: false,
+    recebimentosEfetivos: false,
+    saidas: false,
+    saidasEfetivas: false,
+    pagamentosTotais: false,
+    pagamentosVariaveis: false,
+    pagamentosFixos: false,
+    emprestimosSaidas: false,
+    deducoes: false,
+    movimentacoesSaidas: false,
+  });
+
+  const [dreExpandido, setDreExpandido] = useState({
+    receitas: false,
+    receitasOperacionais: false,
+    outrasReceitas: false,
+    despesas: false,
+    despesasOperacionais: false,
+    outrasDespesas: false,
   });
 
   useEffect(() => {
@@ -271,10 +282,15 @@ export default function App() {
   }, [dadosFiltrados]);
 
   const dreMensal = useMemo(() => {
-    const receitaOperacional = new Array(12).fill(0);
-    const outrasReceitas = new Array(12).fill(0);
-    const despesasOperacionais = new Array(12).fill(0);
-    const outrasDespesas = new Array(12).fill(0);
+    const receitaOperacional = {};
+    const outrasReceitas = {};
+    const despesasOperacionais = {};
+    const outrasDespesas = {};
+
+    const somaMes = (obj, categoria, mes, valor) => {
+      if (!obj[categoria]) obj[categoria] = new Array(12).fill(0);
+      obj[categoria][mes] += valor;
+    };
 
     dadosFiltrados.forEach((item) => {
       if (!(item.data instanceof Date) || isNaN(item.data)) return;
@@ -287,9 +303,9 @@ export default function App() {
           cat.includes("operacion") ||
           cat.includes("patroc")
         ) {
-          receitaOperacional[m] += item.valor || 0;
+          somaMes(receitaOperacional, item.categoria, m, item.valor || 0);
         } else {
-          outrasReceitas[m] += item.valor || 0;
+          somaMes(outrasReceitas, item.categoria, m, item.valor || 0);
         }
       }
 
@@ -301,25 +317,44 @@ export default function App() {
           cat.includes("comiss") ||
           cat.includes("public")
         ) {
-          despesasOperacionais[m] += item.valor || 0;
+          somaMes(despesasOperacionais, item.categoria, m, item.valor || 0);
         } else {
-          outrasDespesas[m] += item.valor || 0;
+          somaMes(outrasDespesas, item.categoria, m, item.valor || 0);
         }
       }
     });
 
-    const receitaLiquida = receitaOperacional.map((v, i) => v + outrasReceitas[i]);
-    const totalDespesas = despesasOperacionais.map(
-      (v, i) => v + outrasDespesas[i]
+    const sumObjMonths = (obj) => {
+      const total = new Array(12).fill(0);
+      Object.values(obj).forEach((arr) =>
+        arr.forEach((v, i) => (total[i] += v))
+      );
+      return total;
+    };
+
+    const receitaOperacionalTotal = sumObjMonths(receitaOperacional);
+    const outrasReceitasTotal = sumObjMonths(outrasReceitas);
+    const despesasOperacionaisTotal = sumObjMonths(despesasOperacionais);
+    const outrasDespesasTotal = sumObjMonths(outrasDespesas);
+
+    const receitaLiquida = receitaOperacionalTotal.map(
+      (v, i) => v + outrasReceitasTotal[i]
+    );
+    const totalDespesas = despesasOperacionaisTotal.map(
+      (v, i) => v + outrasDespesasTotal[i]
     );
     const resultado = receitaLiquida.map((v, i) => v - totalDespesas[i]);
 
     return {
       receitaOperacional,
       outrasReceitas,
-      receitaLiquida,
       despesasOperacionais,
       outrasDespesas,
+      receitaOperacionalTotal,
+      outrasReceitasTotal,
+      receitaLiquida,
+      despesasOperacionaisTotal,
+      outrasDespesasTotal,
       totalDespesas,
       resultado,
     };
@@ -369,11 +404,14 @@ export default function App() {
     };
   }, [dadosFiltrados]);
 
-  const currentContent = () => {
+  const greeting = getGreeting();
+
+  const conteudoPagina = () => {
     switch (pagina) {
       case "fluxo":
         return (
           <FluxoPage
+            greeting={greeting}
             empresaSelecionada={empresaSelecionada}
             ultimosDias={ultimosDias}
             composicaoRecebimentos={composicaoRecebimentos}
@@ -387,6 +425,7 @@ export default function App() {
       case "dre":
         return (
           <DrePage
+            greeting={greeting}
             totais={totais}
             dreMensal={dreMensal}
             dreExpandido={dreExpandido}
@@ -394,13 +433,85 @@ export default function App() {
           />
         );
       case "comercial":
-        return <ComercialPage indicadores={indicadoresComercial} />;
+        return <ComercialPage greeting={greeting} indicadores={indicadoresComercial} />;
       case "inadimplencia":
-        return <InadimplenciaPage indicadores={indicadoresInadimplencia} />;
+        return (
+          <InadimplenciaPage
+            greeting={greeting}
+            indicadores={indicadoresInadimplencia}
+          />
+        );
       default:
         return null;
     }
   };
+
+  if (!logado) {
+    return (
+      <div className="login-wrap">
+        <div className="login-orb orb-1" />
+        <div className="login-orb orb-2" />
+        <div className="login-sparkle">✦</div>
+
+        <div className="login-card">
+          <div className="login-left">
+            <div className="login-title">GPSBI Platform</div>
+
+            <div className="welcome-box">
+              <div className="welcome-head">Seja muito bem-vindo! ✨</div>
+              <div className="welcome-text">
+                Aqui seus números viram{" "}
+                <span>decisões que transformam</span>.
+                <br />
+                Faça login para acessar seu painel.
+              </div>
+            </div>
+
+            <InfoBox
+              title="Clareza para decidir"
+              text="Visual executivo, leitura prática e dados que ajudam o cliente a agir com segurança."
+            />
+            <InfoBox
+              title="Experiência premium GPSBI"
+              text="Mais valor percebido, mais encantamento e menos dependência de ferramentas genéricas."
+            />
+            <InfoBox
+              title="Base pronta para evoluir"
+              text="Login real, permissões por cliente, multiempresa e módulos especializados."
+            />
+          </div>
+
+          <div className="login-right">
+            <div className="small-label">ACESSO DO CLIENTE</div>
+            <div className="login-form-title">Entrar na plataforma</div>
+
+            <label className="field-label">E-mail</label>
+            <input
+              className="field-input"
+              defaultValue="cliente@gpsbi.com.br"
+            />
+
+            <label className="field-label top-gap">Senha</label>
+            <input
+              className="field-input"
+              type="password"
+              defaultValue="12345678"
+            />
+
+            <button className="primary-btn" onClick={() => setLogado(true)}>
+              Entrar
+            </button>
+
+            <div className="login-note">
+              Nesta fase é um protótipo visual. Na próxima evolução conectamos
+              autenticação real, banco de usuários e controle de acesso por
+              cliente.
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">
@@ -425,48 +536,6 @@ export default function App() {
         <div className="client-box">
           <div className="client-name">Grupo Greener / Greendex</div>
           <div className="client-online">● Online</div>
-
-          <div className="segment-group">
-            <button
-              className={`segment-btn ${
-                empresaSelecionada === "Global" ? "active" : ""
-              }`}
-              onClick={() => setEmpresaSelecionada("Global")}
-            >
-              Global
-            </button>
-            <button
-              className={`segment-btn ${
-                empresaSelecionada === "Greener" ? "active" : ""
-              }`}
-              onClick={() => setEmpresaSelecionada("Greener")}
-            >
-              Greener
-            </button>
-            <button
-              className={`segment-btn ${
-                empresaSelecionada === "Greendex" ? "active" : ""
-              }`}
-              onClick={() => setEmpresaSelecionada("Greendex")}
-            >
-              Greendex
-            </button>
-          </div>
-
-          <div style={{ marginTop: 12 }}>
-            <select
-              className="year-select"
-              value={anoSelecionado}
-              onChange={(e) => setAnoSelecionado(e.target.value)}
-            >
-              <option value="todos">Todos os anos</option>
-              {anosDisponiveis.map((ano) => (
-                <option key={ano} value={ano}>
-                  {ano}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
 
         <div className="section-label">FINANCEIRO</div>
@@ -508,6 +577,7 @@ export default function App() {
         >
           Painel Comercial
         </NavItem>
+        <NavItem disabled>Metas & OKRs</NavItem>
 
         <div className="section-label">GESTÃO</div>
         <NavItem disabled>Conciliação Bancária</NavItem>
@@ -533,13 +603,74 @@ export default function App() {
           <div className="mobile-brand-mini">GPSBI Platform</div>
         </div>
 
-        {currentContent()}
+        <header className="top-strip">
+          <div>
+            <div className="top-strip-title">
+              {pagina === "fluxo" && "Fluxo de Caixa"}
+              {pagina === "dre" && "DRE Projetada"}
+              {pagina === "comercial" && "Painel Comercial"}
+              {pagina === "inadimplencia" && "Inadimplência"}
+            </div>
+            <div className="top-strip-sub">
+              Visão diária · {capitalize(greeting)} ·{" "}
+              {new Date().toLocaleDateString("pt-BR", {
+                month: "long",
+                year: "numeric",
+              })}
+            </div>
+          </div>
+
+          <div className="top-right-controls">
+            <div className="segment-group top-right-segments">
+              <button
+                className={`segment-btn ${
+                  empresaSelecionada === "Global" ? "active" : ""
+                }`}
+                onClick={() => setEmpresaSelecionada("Global")}
+              >
+                Global
+              </button>
+              <button
+                className={`segment-btn ${
+                  empresaSelecionada === "Greener" ? "active" : ""
+                }`}
+                onClick={() => setEmpresaSelecionada("Greener")}
+              >
+                Greener
+              </button>
+              <button
+                className={`segment-btn ${
+                  empresaSelecionada === "Greendex" ? "active" : ""
+                }`}
+                onClick={() => setEmpresaSelecionada("Greendex")}
+              >
+                Greendex
+              </button>
+            </div>
+
+            <select
+              className="year-select top-year"
+              value={anoSelecionado}
+              onChange={(e) => setAnoSelecionado(e.target.value)}
+            >
+              <option value="todos">Todos os anos</option>
+              {anosDisponiveis.map((ano) => (
+                <option key={ano} value={ano}>
+                  {ano}
+                </option>
+              ))}
+            </select>
+          </div>
+        </header>
+
+        {conteudoPagina()}
       </main>
     </div>
   );
 }
 
 function FluxoPage({
+  greeting,
   empresaSelecionada,
   ultimosDias,
   composicaoRecebimentos,
@@ -554,47 +685,38 @@ function FluxoPage({
       <section className="hero-box">
         <div className="hero-copy">
           <div className="hero-title">
-            Bom dia, <span>Equipe GPSBI!</span> 👋
+            {capitalize(greeting)}, <span>Equipe GPSBI!</span> 👋
           </div>
           <div className="hero-text">
-            Seus indicadores de hoje estão prontos. Continue tomando decisões
-            com clareza e confiança — seus números estão trabalhando para você.
+            Seus indicadores de hoje estão prontos. Continue tomando decisões com
+            clareza e confiança — seus números estão trabalhando para você.
           </div>
         </div>
         <div className="hero-sparkle">✦</div>
       </section>
 
-      <div className="page-topline">
-        <div>
-          <h1 className="page-title">Fluxo de Caixa</h1>
-          <div className="page-subtitle">
-            Visão diária • {empresaSelecionada}
-          </div>
-        </div>
-      </div>
-
       <section className="metric-grid">
         <MetricCard
           title="RECEBIMENTOS TOTAIS"
-          value={currency(totais.entradas)}
+          value={currencyCompact(totais.entradas)}
           helper="no período"
           tone="green"
         />
         <MetricCard
           title="PAGAMENTOS TOTAIS"
-          value={currency(totais.saidas)}
+          value={currencyCompact(totais.saidas)}
           helper="saídas"
           tone="red"
         />
         <MetricCard
           title="SALDO FINAL BANCO"
-          value={currency(totais.saldo)}
+          value={currencyCompact(totais.saldo)}
           helper="acumulado"
           tone={totais.saldo >= 0 ? "blue" : "red"}
         />
         <MetricCard
           title="MELHOR DIA"
-          value={currency(melhorRecebimento.valor)}
+          value={currencyCompact(melhorRecebimento.valor)}
           helper={`maior entrada • ${melhorRecebimento.data}`}
           tone="yellow"
         />
@@ -665,7 +787,7 @@ function FluxoPage({
 
           <div className="legend-list">
             {composicaoRecebimentos.map((item, idx) => (
-              <div key={idx} className="legend-item">
+              <div className="legend-item" key={idx}>
                 <div className="legend-left">
                   <span
                     className="legend-dot"
@@ -682,7 +804,7 @@ function FluxoPage({
         </Panel>
       </section>
 
-      <Panel title="SALDO ACUMULADO NO PERÍODO">
+      <Panel title="SALDO ACUMULADO NO MÊS">
         <div className="timeline-wrap">
           <div className="chart-box h300">
             <ResponsiveContainer>
@@ -732,7 +854,15 @@ function FluxoPage({
               onClick={() =>
                 setFluxoExpandido({
                   recebimentos: true,
+                  recebimentosEfetivos: true,
                   saidas: true,
+                  saidasEfetivas: true,
+                  pagamentosTotais: true,
+                  pagamentosVariaveis: true,
+                  pagamentosFixos: true,
+                  emprestimosSaidas: true,
+                  deducoes: true,
+                  movimentacoesSaidas: true,
                 })
               }
             >
@@ -743,7 +873,15 @@ function FluxoPage({
               onClick={() =>
                 setFluxoExpandido({
                   recebimentos: false,
+                  recebimentosEfetivos: false,
                   saidas: false,
+                  saidasEfetivas: false,
+                  pagamentosTotais: false,
+                  pagamentosVariaveis: false,
+                  pagamentosFixos: false,
+                  emprestimosSaidas: false,
+                  deducoes: false,
+                  movimentacoesSaidas: false,
                 })
               }
             >
@@ -779,18 +917,37 @@ function FluxoPage({
                 }
               />
 
-              {fluxoExpandido.recebimentos &&
-                Object.entries(fluxoMensal.entradasPorCategoria)
-                  .sort((a, b) => sumArr(b[1]) - sumArr(a[1]))
-                  .map(([categoria, valores]) => (
-                    <TreeRow
-                      key={categoria}
-                      label={categoria}
-                      level={1}
-                      values={valores}
-                      color="green"
-                    />
-                  ))}
+              {fluxoExpandido.recebimentos && (
+                <>
+                  <TreeRow
+                    label="RECEBIMENTOS EFETIVOS"
+                    level={1}
+                    values={fluxoMensal.totalEntradasMes}
+                    color="green"
+                    expandable
+                    expanded={fluxoExpandido.recebimentosEfetivos}
+                    onToggle={() =>
+                      setFluxoExpandido((prev) => ({
+                        ...prev,
+                        recebimentosEfetivos: !prev.recebimentosEfetivos,
+                      }))
+                    }
+                  />
+
+                  {fluxoExpandido.recebimentosEfetivos &&
+                    Object.entries(fluxoMensal.entradasPorCategoria)
+                      .sort((a, b) => sumArr(b[1]) - sumArr(a[1]))
+                      .map(([categoria, valores]) => (
+                        <TreeRow
+                          key={categoria}
+                          label={categoria}
+                          level={2}
+                          values={valores}
+                          color="green"
+                        />
+                      ))}
+                </>
+              )}
 
               <TreeRow
                 label="SAÍDAS TOTAIS"
@@ -807,18 +964,218 @@ function FluxoPage({
                 }
               />
 
-              {fluxoExpandido.saidas &&
-                Object.entries(fluxoMensal.saidasPorCategoria)
-                  .sort((a, b) => sumArr(b[1]) - sumArr(a[1]))
-                  .map(([categoria, valores]) => (
-                    <TreeRow
-                      key={categoria}
-                      label={categoria}
-                      level={1}
-                      values={valores.map((v) => -v)}
-                      color="red"
-                    />
-                  ))}
+              {fluxoExpandido.saidas && (
+                <>
+                  <TreeRow
+                    label="SAÍDAS EFETIVAS"
+                    level={1}
+                    values={fluxoMensal.totalSaidasMes.map((v) => -v)}
+                    color="red"
+                    expandable
+                    expanded={fluxoExpandido.saidasEfetivas}
+                    onToggle={() =>
+                      setFluxoExpandido((prev) => ({
+                        ...prev,
+                        saidasEfetivas: !prev.saidasEfetivas,
+                      }))
+                    }
+                  />
+
+                  {fluxoExpandido.saidasEfetivas && (
+                    <>
+                      <TreeRow
+                        label="Pagamentos Totais"
+                        level={2}
+                        values={sumCategoriesByKeyword(
+                          fluxoMensal.saidasPorCategoria,
+                          ["pag", "fornecedor", "alug", "sal", "enc", "public", "comiss", "sistema"]
+                        ).map((v) => -v)}
+                        color="red"
+                        expandable
+                        expanded={fluxoExpandido.pagamentosTotais}
+                        onToggle={() =>
+                          setFluxoExpandido((prev) => ({
+                            ...prev,
+                            pagamentosTotais: !prev.pagamentosTotais,
+                          }))
+                        }
+                      />
+
+                      {fluxoExpandido.pagamentosTotais && (
+                        <>
+                          <TreeRow
+                            label="Pagamentos Variáveis"
+                            level={3}
+                            values={sumCategoriesByKeyword(
+                              fluxoMensal.saidasPorCategoria,
+                              ["fornecedor", "comiss", "public"]
+                            ).map((v) => -v)}
+                            color="red"
+                            expandable
+                            expanded={fluxoExpandido.pagamentosVariaveis}
+                            onToggle={() =>
+                              setFluxoExpandido((prev) => ({
+                                ...prev,
+                                pagamentosVariaveis: !prev.pagamentosVariaveis,
+                              }))
+                            }
+                          />
+
+                          {fluxoExpandido.pagamentosVariaveis &&
+                            filterCategoriesByKeyword(fluxoMensal.saidasPorCategoria, [
+                              "fornecedor",
+                              "comiss",
+                              "public",
+                            ]).map(([categoria, valores]) => (
+                              <TreeRow
+                                key={categoria}
+                                label={categoria}
+                                level={4}
+                                values={valores.map((v) => -v)}
+                                color="red"
+                              />
+                            ))}
+
+                          <TreeRow
+                            label="Pagamentos Fixos"
+                            level={3}
+                            values={sumCategoriesByKeyword(
+                              fluxoMensal.saidasPorCategoria,
+                              ["sal", "enc", "alug", "sistema"]
+                            ).map((v) => -v)}
+                            color="red"
+                            expandable
+                            expanded={fluxoExpandido.pagamentosFixos}
+                            onToggle={() =>
+                              setFluxoExpandido((prev) => ({
+                                ...prev,
+                                pagamentosFixos: !prev.pagamentosFixos,
+                              }))
+                            }
+                          />
+
+                          {fluxoExpandido.pagamentosFixos &&
+                            filterCategoriesByKeyword(fluxoMensal.saidasPorCategoria, [
+                              "sal",
+                              "enc",
+                              "alug",
+                              "sistema",
+                            ]).map(([categoria, valores]) => (
+                              <TreeRow
+                                key={categoria}
+                                label={categoria}
+                                level={4}
+                                values={valores.map((v) => -v)}
+                                color="red"
+                              />
+                            ))}
+                        </>
+                      )}
+
+                      <TreeRow
+                        label="Empréstimos e Movimentações (Saídas)"
+                        level={2}
+                        values={sumCategoriesByKeyword(
+                          fluxoMensal.saidasPorCategoria,
+                          ["empr", "antecipa", "banco", "sócio", "movimenta"]
+                        ).map((v) => -v)}
+                        color="red"
+                        expandable
+                        expanded={fluxoExpandido.emprestimosSaidas}
+                        onToggle={() =>
+                          setFluxoExpandido((prev) => ({
+                            ...prev,
+                            emprestimosSaidas: !prev.emprestimosSaidas,
+                          }))
+                        }
+                      />
+
+                      {fluxoExpandido.emprestimosSaidas &&
+                        filterCategoriesByKeyword(fluxoMensal.saidasPorCategoria, [
+                          "empr",
+                          "antecipa",
+                          "banco",
+                          "sócio",
+                          "movimenta",
+                        ]).map(([categoria, valores]) => (
+                          <TreeRow
+                            key={categoria}
+                            label={categoria}
+                            level={3}
+                            values={valores.map((v) => -v)}
+                            color="red"
+                          />
+                        ))}
+
+                      <TreeRow
+                        label="Deduções da Receita / Tributos"
+                        level={2}
+                        values={sumCategoriesByKeyword(
+                          fluxoMensal.saidasPorCategoria,
+                          ["imposto", "tribut", "reten", "taxa", "dedu"]
+                        ).map((v) => -v)}
+                        color="red"
+                        expandable
+                        expanded={fluxoExpandido.deducoes}
+                        onToggle={() =>
+                          setFluxoExpandido((prev) => ({
+                            ...prev,
+                            deducoes: !prev.deducoes,
+                          }))
+                        }
+                      />
+
+                      {fluxoExpandido.deducoes &&
+                        filterCategoriesByKeyword(fluxoMensal.saidasPorCategoria, [
+                          "imposto",
+                          "tribut",
+                          "reten",
+                          "taxa",
+                          "dedu",
+                        ]).map(([categoria, valores]) => (
+                          <TreeRow
+                            key={categoria}
+                            label={categoria}
+                            level={3}
+                            values={valores.map((v) => -v)}
+                            color="red"
+                          />
+                        ))}
+
+                      <TreeRow
+                        label="Movimentações (Saídas)"
+                        level={2}
+                        values={sumCategoriesByKeyword(
+                          fluxoMensal.saidasPorCategoria,
+                          ["movimenta"]
+                        ).map((v) => -v)}
+                        color="red"
+                        expandable
+                        expanded={fluxoExpandido.movimentacoesSaidas}
+                        onToggle={() =>
+                          setFluxoExpandido((prev) => ({
+                            ...prev,
+                            movimentacoesSaidas: !prev.movimentacoesSaidas,
+                          }))
+                        }
+                      />
+
+                      {fluxoExpandido.movimentacoesSaidas &&
+                        filterCategoriesByKeyword(fluxoMensal.saidasPorCategoria, [
+                          "movimenta",
+                        ]).map(([categoria, valores]) => (
+                          <TreeRow
+                            key={categoria}
+                            label={categoria}
+                            level={3}
+                            values={valores.map((v) => -v)}
+                            color="red"
+                          />
+                        ))}
+                    </>
+                  )}
+                </>
+              )}
 
               <TreeRow
                 label="SALDO CAIXA"
@@ -835,34 +1192,38 @@ function FluxoPage({
   );
 }
 
-function DrePage({ totais, dreMensal, dreExpandido, setDreExpandido }) {
+function DrePage({ greeting, totais, dreMensal, dreExpandido, setDreExpandido }) {
   return (
     <>
-      <div className="page-topline">
-        <div>
-          <h1 className="page-title">DRE Projetada</h1>
-          <div className="page-subtitle">
-            Estrutura em plano de contas com expansão por grupos
+      <section className="hero-box compact">
+        <div className="hero-copy">
+          <div className="hero-title">
+            {capitalize(greeting)}, <span>Equipe GPSBI!</span> ✨
+          </div>
+          <div className="hero-text">
+            Aqui a DRE ganha estrutura visual, leitura por grupos e clareza para
+            acompanhar o resultado.
           </div>
         </div>
-      </div>
+        <div className="hero-sparkle">✦</div>
+      </section>
 
       <section className="metric-grid">
         <MetricCard
           title="RECEITA LÍQUIDA"
-          value={currency(sumArr(dreMensal.receitaLiquida))}
+          value={currencyCompact(sumArr(dreMensal.receitaLiquida))}
           helper="no período"
           tone="green"
         />
         <MetricCard
           title="DESPESAS TOTAIS"
-          value={currency(sumArr(dreMensal.totalDespesas))}
+          value={currencyCompact(sumArr(dreMensal.totalDespesas))}
           helper="no período"
           tone="red"
         />
         <MetricCard
           title="RESULTADO"
-          value={currency(sumArr(dreMensal.resultado))}
+          value={currencyCompact(sumArr(dreMensal.resultado))}
           helper="lucro / prejuízo"
           tone={sumArr(dreMensal.resultado) >= 0 ? "blue" : "red"}
         />
@@ -885,8 +1246,12 @@ function DrePage({ totais, dreMensal, dreExpandido, setDreExpandido }) {
               className="ghost-btn"
               onClick={() =>
                 setDreExpandido({
-                  receita: true,
+                  receitas: true,
+                  receitasOperacionais: true,
+                  outrasReceitas: true,
                   despesas: true,
+                  despesasOperacionais: true,
+                  outrasDespesas: true,
                 })
               }
             >
@@ -896,8 +1261,12 @@ function DrePage({ totais, dreMensal, dreExpandido, setDreExpandido }) {
               className="ghost-btn"
               onClick={() =>
                 setDreExpandido({
-                  receita: false,
+                  receitas: false,
+                  receitasOperacionais: false,
+                  outrasReceitas: false,
                   despesas: false,
+                  despesasOperacionais: false,
+                  outrasDespesas: false,
                 })
               }
             >
@@ -924,28 +1293,72 @@ function DrePage({ totais, dreMensal, dreExpandido, setDreExpandido }) {
                 values={dreMensal.receitaLiquida}
                 color="green"
                 expandable
-                expanded={dreExpandido.receita}
+                expanded={dreExpandido.receitas}
                 onToggle={() =>
                   setDreExpandido((prev) => ({
                     ...prev,
-                    receita: !prev.receita,
+                    receitas: !prev.receitas,
                   }))
                 }
               />
-              {dreExpandido.receita && (
+
+              {dreExpandido.receitas && (
                 <>
                   <TreeRow
                     label="Receita Operacional"
                     level={1}
-                    values={dreMensal.receitaOperacional}
+                    values={dreMensal.receitaOperacionalTotal}
                     color="green"
+                    expandable
+                    expanded={dreExpandido.receitasOperacionais}
+                    onToggle={() =>
+                      setDreExpandido((prev) => ({
+                        ...prev,
+                        receitasOperacionais: !prev.receitasOperacionais,
+                      }))
+                    }
                   />
+
+                  {dreExpandido.receitasOperacionais &&
+                    Object.entries(dreMensal.receitaOperacional).map(
+                      ([categoria, valores]) => (
+                        <TreeRow
+                          key={categoria}
+                          label={categoria}
+                          level={2}
+                          values={valores}
+                          color="green"
+                        />
+                      )
+                    )}
+
                   <TreeRow
                     label="Outras Receitas"
                     level={1}
-                    values={dreMensal.outrasReceitas}
+                    values={dreMensal.outrasReceitasTotal}
                     color="green"
+                    expandable
+                    expanded={dreExpandido.outrasReceitas}
+                    onToggle={() =>
+                      setDreExpandido((prev) => ({
+                        ...prev,
+                        outrasReceitas: !prev.outrasReceitas,
+                      }))
+                    }
                   />
+
+                  {dreExpandido.outrasReceitas &&
+                    Object.entries(dreMensal.outrasReceitas).map(
+                      ([categoria, valores]) => (
+                        <TreeRow
+                          key={categoria}
+                          label={categoria}
+                          level={2}
+                          values={valores}
+                          color="green"
+                        />
+                      )
+                    )}
                 </>
               )}
 
@@ -963,20 +1376,64 @@ function DrePage({ totais, dreMensal, dreExpandido, setDreExpandido }) {
                   }))
                 }
               />
+
               {dreExpandido.despesas && (
                 <>
                   <TreeRow
                     label="Despesas Operacionais"
                     level={1}
-                    values={dreMensal.despesasOperacionais.map((v) => -v)}
+                    values={dreMensal.despesasOperacionaisTotal.map((v) => -v)}
                     color="red"
+                    expandable
+                    expanded={dreExpandido.despesasOperacionais}
+                    onToggle={() =>
+                      setDreExpandido((prev) => ({
+                        ...prev,
+                        despesasOperacionais: !prev.despesasOperacionais,
+                      }))
+                    }
                   />
+
+                  {dreExpandido.despesasOperacionais &&
+                    Object.entries(dreMensal.despesasOperacionais).map(
+                      ([categoria, valores]) => (
+                        <TreeRow
+                          key={categoria}
+                          label={categoria}
+                          level={2}
+                          values={valores.map((v) => -v)}
+                          color="red"
+                        />
+                      )
+                    )}
+
                   <TreeRow
                     label="Outras Despesas"
                     level={1}
-                    values={dreMensal.outrasDespesas.map((v) => -v)}
+                    values={dreMensal.outrasDespesasTotal.map((v) => -v)}
                     color="red"
+                    expandable
+                    expanded={dreExpandido.outrasDespesas}
+                    onToggle={() =>
+                      setDreExpandido((prev) => ({
+                        ...prev,
+                        outrasDespesas: !prev.outrasDespesas,
+                      }))
+                    }
                   />
+
+                  {dreExpandido.outrasDespesas &&
+                    Object.entries(dreMensal.outrasDespesas).map(
+                      ([categoria, valores]) => (
+                        <TreeRow
+                          key={categoria}
+                          label={categoria}
+                          level={2}
+                          values={valores.map((v) => -v)}
+                          color="red"
+                        />
+                      )
+                    )}
                 </>
               )}
 
@@ -995,22 +1452,26 @@ function DrePage({ totais, dreMensal, dreExpandido, setDreExpandido }) {
   );
 }
 
-function ComercialPage({ indicadores }) {
+function ComercialPage({ greeting, indicadores }) {
   return (
     <>
-      <div className="page-topline">
-        <div>
-          <h1 className="page-title">Painel Comercial</h1>
-          <div className="page-subtitle">
-            Métricas comerciais e categorias com maior peso
+      <section className="hero-box compact">
+        <div className="hero-copy">
+          <div className="hero-title">
+            {capitalize(greeting)}, <span>Equipe GPSBI!</span> 📈
+          </div>
+          <div className="hero-text">
+            Aqui você acompanha faturamento, ticket e categorias com maior peso
+            comercial.
           </div>
         </div>
-      </div>
+        <div className="hero-sparkle">✦</div>
+      </section>
 
       <section className="metric-grid">
         <MetricCard
           title="FATURAMENTO"
-          value={currency(indicadores.faturamento)}
+          value={currencyCompact(indicadores.faturamento)}
           helper="receitas no período"
           tone="green"
         />
@@ -1022,7 +1483,7 @@ function ComercialPage({ indicadores }) {
         />
         <MetricCard
           title="TICKET MÉDIO"
-          value={currency(indicadores.ticket)}
+          value={currencyCompact(indicadores.ticket)}
           helper="média por lançamento"
           tone="yellow"
         />
@@ -1048,22 +1509,26 @@ function ComercialPage({ indicadores }) {
   );
 }
 
-function InadimplenciaPage({ indicadores }) {
+function InadimplenciaPage({ greeting, indicadores }) {
   return (
     <>
-      <div className="page-topline">
-        <div>
-          <h1 className="page-title">Inadimplência</h1>
-          <div className="page-subtitle">
-            Pendências financeiras em aberto para acompanhamento
+      <section className="hero-box compact">
+        <div className="hero-copy">
+          <div className="hero-title">
+            {capitalize(greeting)}, <span>Equipe GPSBI!</span> ⚠️
+          </div>
+          <div className="hero-text">
+            Aqui você acompanha pendências em aberto e os principais itens que
+            exigem atenção.
           </div>
         </div>
-      </div>
+        <div className="hero-sparkle">✦</div>
+      </section>
 
       <section className="metric-grid">
         <MetricCard
           title="TOTAL EM ABERTO"
-          value={currency(indicadores.total)}
+          value={currencyCompact(indicadores.total)}
           helper="soma das pendências"
           tone="red"
         />
@@ -1139,6 +1604,15 @@ function NavItem({ children, active = false, disabled = false, onClick }) {
   );
 }
 
+function InfoBox({ title, text }) {
+  return (
+    <div className="info-box">
+      <div className="info-title">{title}</div>
+      <div className="info-text">{text}</div>
+    </div>
+  );
+}
+
 function TreeRow({
   label,
   values,
@@ -1188,6 +1662,18 @@ function TreeRow({
   );
 }
 
+function getGreeting() {
+  const hora = new Date().getHours();
+  if (hora < 12) return "bom dia";
+  if (hora < 18) return "boa tarde";
+  return "boa noite";
+}
+
+function capitalize(text) {
+  if (!text) return "";
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 function parseDateSafe(value) {
   if (!value) return null;
   const dt = new Date(value);
@@ -1227,8 +1713,34 @@ function currency(valor) {
   });
 }
 
+function currencyCompact(valor) {
+  const abs = Math.abs(valor || 0);
+  if (abs >= 1000000) return `R$${(valor / 1000000).toFixed(1)}M`;
+  if (abs >= 1000) return `R$${Math.round(valor / 1000)}k`;
+  return currency(valor);
+}
+
 function sumArr(arr = []) {
   return arr.reduce((a, b) => a + b, 0);
+}
+
+function filterCategoriesByKeyword(obj, keywords) {
+  return Object.entries(obj).filter(([categoria]) => {
+    const nome = (categoria || "").toLowerCase();
+    return keywords.some((k) => nome.includes(k));
+  });
+}
+
+function sumCategoriesByKeyword(obj, keywords) {
+  const total = new Array(12).fill(0);
+
+  filterCategoriesByKeyword(obj, keywords).forEach(([, valores]) => {
+    valores.forEach((v, i) => {
+      total[i] += v;
+    });
+  });
+
+  return total;
 }
 
 const tooltipStyle = {
