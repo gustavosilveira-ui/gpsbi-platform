@@ -4,8 +4,8 @@ export default function App() {
   const [dados, setDados] = useState([]);
   const [empresaSelecionada, setEmpresaSelecionada] = useState("todas");
 
-const URL = "/api/fluxo";
-  
+  const URL = "/api/fluxo";
+
   useEffect(() => {
     fetch(URL)
       .then((res) => res.text())
@@ -46,69 +46,88 @@ const URL = "/api/fluxo";
       });
   }, []);
 
-  const totalEntradas = dadosFiltrados
-  .filter((d) => d.tipo === "entrada")
-  .reduce((acc, cur) => acc + (cur.valor || 0), 0);
-
-const totalSaidas = dadosFiltrados
-  .filter((d) => d.tipo === "saida" || d.tipo === "saída")
-  .reduce((acc, cur) => acc + (cur.valor || 0), 0);
-
-const saldo = totalEntradas - totalSaidas;
-
   const dadosFiltrados =
-  empresaSelecionada === "todas"
-    ? dados
-    : dados.filter(
-        (d) =>
-          (d.empresa || "").toLowerCase().trim() ===
-          empresaSelecionada.toLowerCase().trim()
-      );
+    empresaSelecionada === "todas"
+      ? dados
+      : dados.filter(
+          (d) =>
+            (d.empresa || "").toLowerCase().trim() ===
+            empresaSelecionada.toLowerCase().trim()
+        );
+
+  const totalEntradas = dadosFiltrados
+    .filter((d) => d.tipo === "entrada")
+    .reduce((acc, cur) => acc + (cur.valor || 0), 0);
+
+  const totalSaidas = dadosFiltrados
+    .filter((d) => d.tipo === "saida" || d.tipo === "saída")
+    .reduce((acc, cur) => acc + (cur.valor || 0), 0);
+
+  const saldo = totalEntradas - totalSaidas;
 
   return (
-    <div style={{ padding: 30, color: "#fff", background: "#0f172a", minHeight: "100vh" }}>
-      <h1>GPSBI - Fluxo de Caixa</h1>
+    <div
+      style={{
+        padding: 30,
+        color: "#fff",
+        background: "#0f172a",
+        minHeight: "100vh",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
+      <h1 style={{ marginBottom: 10 }}>GPSBI - Fluxo de Caixa</h1>
 
       <select
-  value={empresaSelecionada}
-  onChange={(e) => setEmpresaSelecionada(e.target.value)}
-  style={{
-    padding: 10,
-    marginTop: 10,
-    marginBottom: 20,
-    borderRadius: 8,
-  }}
->
-  <option value="todas">Todas as empresas</option>
-  <option value="greener">Greener</option>
-  <option value="greendex">Greendex</option>
-</select>
+        value={empresaSelecionada}
+        onChange={(e) => setEmpresaSelecionada(e.target.value)}
+        style={{
+          padding: 10,
+          marginTop: 10,
+          marginBottom: 20,
+          borderRadius: 8,
+          border: "none",
+        }}
+      >
+        <option value="todas">Todas as empresas</option>
+        <option value="greener">Greener</option>
+        <option value="greendex">Greendex</option>
+      </select>
 
       <h2>
-  Entradas:{" "}
-  {totalEntradas.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  })}
-</h2>
-<h2>
-  Saídas:{" "}
-  {totalSaidas.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  })}
-</h2>
-<h2>
-  Saldo:{" "}
-  {saldo.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  })}
-</h2>
+        Entradas:{" "}
+        {totalEntradas.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        })}
+      </h2>
 
-      <hr />
+      <h2>
+        Saídas:{" "}
+        {totalSaidas.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        })}
+      </h2>
 
-      <table border="1" cellPadding="5" style={{ borderCollapse: "collapse", background: "#111827" }}>
+      <h2>
+        Saldo:{" "}
+        {saldo.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        })}
+      </h2>
+
+      <hr style={{ margin: "20px 0" }} />
+
+      <table
+        border="1"
+        cellPadding="8"
+        style={{
+          borderCollapse: "collapse",
+          background: "#111827",
+          width: "100%",
+        }}
+      >
         <thead>
           <tr>
             <th>Empresa</th>
@@ -126,11 +145,11 @@ const saldo = totalEntradas - totalSaidas;
               <td>{d.data}</td>
               <td>{d.descricao}</td>
               <td>
-  {d.valor.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  })}
-</td>
+                {d.valor.toLocaleString("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                })}
+              </td>
             </tr>
           ))}
         </tbody>
